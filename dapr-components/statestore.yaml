@@ -1,0 +1,17 @@
+# Reference only — recreate this via the Azure Portal (Dapr components → + Add → Generic component)
+# Paste the storage account key using the copy icon on the source resource, never manual-select.
+componentType: state.azure.blobstorage
+version: v1
+metadata:
+  - name: accountName
+    value: "stresumeiq01"
+  - name: accountKey
+    secretRef: storage-account-key
+  - name: containerName
+    value: "dapr-state"
+secrets:
+  - name: storage-account-key
+    keyVaultUrl: "https://kv-resumeiq.vault.azure.net"
+    keyVaultSecret: "StorageAccountKey"
+scopes:
+  - analyzer-api

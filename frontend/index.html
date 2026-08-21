@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ResumeIQ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 60px auto; padding: 0 20px; color: #1a1a1a; }
+  h1 { font-size: 1.8rem; margin-bottom: 4px; }
+  p.tagline { color: #666; margin-top: 0; }
+  label { display: block; margin-top: 16px; font-weight: 600; font-size: 0.9rem; }
+  textarea, input { width: 100%; padding: 10px; margin-top: 6px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: inherit; }
+  textarea { min-height: 120px; resize: vertical; }
+  button { margin-top: 24px; width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
+  button:hover { background: #1d4ed8; }
+  button:disabled { background: #93c5fd; cursor: wait; }
+  #result { margin-top: 24px; display: none; }
+  .score { font-size: 3rem; font-weight: 700; }
+  .score.good { color: #065f46; }
+  .score.mid { color: #92400e; }
+  .score.low { color: #991b1b; }
+  .section { margin-top: 16px; }
+  .section h3 { font-size: 0.85rem; text-transform: uppercase; color: #666; margin-bottom: 8px; }
+  ul { margin: 0; padding-left: 20px; }
+  li { margin-bottom: 6px; }
+  #error { margin-top: 16px; padding: 12px; background: #fef2f2; color: #991b1b; border-radius: 6px; display: none; }
+</style>
+</head>
+<body>
+  <h1>ResumeIQ</h1>
+  <p class="tagline">Paste a job description, upload a resume, get an instant match score.</p>
+
+  <form id="analyzeForm">
+    <label>Job description</label>
+    <textarea name="job_description" required placeholder="Paste the job description here..."></textarea>
+
+    <label>Resume (PDF)</label>
+    <input type="file" name="resume" accept="application/pdf" required>
+
+    <button type="submit" id="submitBtn">Analyze</button>
+  </form>
+
+  <div id="error"></div>
+
+  <div id="result">
+    <div class="score" id="scoreDisplay"></div>
+    <p id="summaryDisplay" style="color:#444;"></p>
+
+    <div class="section">
+      <h3>Strengths</h3>
+      <ul id="strengthsList"></ul>
+    </div>
+
+    <div class="section">
+      <h3>Gaps</h3>
+      <ul id="gapsList"></ul>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "https://analyzer-api.<YOUR-ACA-DOMAIN>.azurecontainerapps.io";
+
+    document.getElementById("analyzeForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const data = new FormData(form);
+      const btn = document.getElementById("submitBtn");
+      const errorEl = document.getElementById("error");
+      const resultEl = document.getElementById("result");
+
+      errorEl.style.display = "none";
+      resultEl.style.display = "none";
+      btn.disabled = true;
+      btn.textContent = "Analyzing...";
+
+      try {
+        const res = await fetch(`${API_BASE}/analyze`, { method: "POST", body: data });
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        const json = await res.json();
+
+        const score = json.score ?? 0;
+        const scoreEl = document.getElementById("scoreDisplay");
+        scoreEl.textContent = `${score}/100`;
+        scoreEl.className = "score " + (score >= 75 ? "good" : score >= 50 ? "mid" : "low");
+
+        document.getElementById("summaryDisplay").textContent = json.summary || "";
+        document.getElementById("strengthsList").innerHTML = (json.strengths || []).map(s => `<li>${s}</li>`).join("");
+        document.getElementById("gapsList").innerHTML = (json.gaps || []).map(g => `<li>${g}</li>`).join("");
+
+        resultEl.style.display = "block";
+      } catch (err) {
+        errorEl.textContent = "Analysis failed: " + err.message;
+        errorEl.style.display = "block";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Analyze";
+      }
+    });
+  </script>
+</body>
+</html>

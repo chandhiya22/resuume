@@ -1,0 +1,14 @@
+# Reference only — recreate this via the Azure Portal (Dapr components → + Add → Generic component)
+# Paste the Service Bus connection string using the copy icon next to Primary Connection String.
+componentType: pubsub.azure.servicebus.topics
+version: v1
+metadata:
+  - name: connectionString
+    secretRef: servicebus-connection-string
+secrets:
+  - name: servicebus-connection-string
+    keyVaultUrl: "https://kv-resumeiq.vault.azure.net"
+    keyVaultSecret: "ServiceBusConnectionString"
+scopes:
+  - analyzer-api
+  - audit-logger
