@@ -57,10 +57,10 @@ def extract_pdf_text(file_bytes: bytes) -> str:
 
 
 async def call_llm(resume_text: str, job_description: str, api_key: str) -> dict:
-    """Calls OpenAI-compatible chat completion endpoint. Swap URL/model as needed."""
+    """Calls Google Gemini's generateContent endpoint."""
     prompt = f"""You are a resume screener. Compare this resume to the job description.
 Return ONLY valid JSON with keys: "score" (0-100 integer), "strengths" (list of 3 short strings),
-"gaps" (list of 3 short strings), "summary" (one sentence).
+"gaps" (list of 3 short strings), "summary" (one sentence). No markdown, no code fences, just raw JSON.
 
 JOB DESCRIPTION:
 {job_description}
@@ -68,19 +68,25 @@ JOB DESCRIPTION:
 RESUME:
 {resume_text}
 """
+    model = "gemini-2.0-flash"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            url,
+            headers={"Content-Type": "application/json"},
             json={
-                "model": "gpt-4o-mini",
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.3,
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": 0.3,
+                    "responseMimeType": "application/json",
+                },
             },
             timeout=30.0,
         )
         resp.raise_for_status()
-        content = resp.json()["choices"][0]["message"]["content"]
+        data = resp.json()
+        content = data["candidates"][0]["content"]["parts"][0]["text"]
         content = content.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         return json.loads(content)
 
